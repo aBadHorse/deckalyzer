@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 class Card(object):
     def __init__(self, card_data):
@@ -12,18 +12,19 @@ class Card(object):
 
 
 class Deck(object):
-    def __init__(self, id=None, creator=None, name=None, descr=None):
+    def __init__(self, id=None, creator=None, name=None, descr=None,
+            date_created=datetime.now(), last_updated=datetime.now()):
         self.id = id
         self.cards = []
         self.creator = creator
         self.name = name
         self.descr = descr
-        self.date_created = datetime.datetime.now()
-        self.last_updated = datetime.datetime.now()
+        self.date_created = date_created
+        self.last_updated = last_updated
 
     def add_card(self, card):
         self.cards.append(card)
-        self.last_updated = datetime.datetime.now()
+        self.last_updated = datetime.now()
 
     def deck_cards(self):
         deck_cards = []

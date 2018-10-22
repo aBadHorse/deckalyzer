@@ -1,7 +1,7 @@
 import os, sqlite3
 from objects import Card, Deck
 
-PATH = os.path.join(os.path.dirname(__file__), 'db.sqlite3')
+PATH = os.path.join(os.path.dirname(__file__), 'card_db.sqlite3')
 
 def db_connect(db_path=PATH):
     if os.path.exists(db_path):
@@ -9,7 +9,7 @@ def db_connect(db_path=PATH):
     else:
         con = sqlite3.connect(db_path)
         create_tables(con)
-        describe_tables(con)
+        #describe_tables(con)
     return con
 
 def find_card(con, name):
@@ -37,34 +37,35 @@ def find_deck(con, deck_id):
     sql = """
         SELECT * FROM all_decks WHERE id = ?
     """
-    sql2 = """
+    try:
+        cur = con.cursor()
+        cur.execute(sql, [deck_id])
+        res = cur.fetchone()
+        deck = Deck(res[0], res[1], res[2], res[3], res[4], res[5])
+        return deck
+    except:
+        raise RuntimeWarning("Deck not found")
+
+
+def find_deck_cards(con, deck):
+    sql = """
         SELECT ac.name, ac.cmc, ac.mc, ac.type, dc.count FROM deck_cards dc
         JOIN all_cards ac ON dc.card_name = ac.name
         WHERE dc.deck_id = ?
     """
     cur = con.cursor()
-    cur.execute(sql, [deck_id])
-    res = cur.fetchone()
-    if res is not None:
-        deck = Deck(id=res[0], creator=res[1], name=res[2], descr=res[3])
-        deck.date_created = res[4]
-        deck.last_updated = res[5]
-        cur.execute(sql2, [deck_id])
-        res = cur.fetchall()
-        for r in res:
-            card_data = {
-                'name': r[0],
-                'cmc': r[1],
-                'mana_cost': r[2],
-                'type_line': r[3]
-            }
-            my_card = Card(card_data)
-            for _ in range(r[4]):
-                deck.add_card(my_card)
-    else:
-        raise RuntimeWarning("Deck not found...")
-
-
+    cur.execute(sql, [deck.id])
+    res = cur.fetchall()
+    for r in res:
+        card_data = {
+            'name': r[0],
+            'cmc': r[1],
+            'mana_cost': r[2],
+            'type_line': r[3]
+        }
+        my_card = Card(card_data)
+        for _ in range(r[4]):
+            deck.add_card(my_card)
 
 def insert_deck(con, deck):
     sql = """
@@ -79,6 +80,20 @@ def insert_deck(con, deck):
     except:
         con.rollback()
         raise RuntimeError("Error trying to insert deck into all_decks")
+
+def update_deck(con, deck):
+    sql = """
+        UPDATE all_decks
+        SET creator = ?, name = ?, descr = ?, last_updated = ?
+        WHERE id = ?
+    """
+    try:
+        cur = con.cursor()
+        cur.execute(sql, (deck.creator, deck.name, deck.descr, deck.last_updated, deck.id))
+        con.commit()
+    except:
+        con.rollback()
+        raise RuntimeError("Error trying to update deck in all_decks")
 
 def insert_deck_cards(con, deck):
     sql = """
